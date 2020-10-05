@@ -74,15 +74,21 @@ class ProveSource
             <script>
                 
                 jQuery(document).ready(function(){
+
                     var ajaxurl = "<?php echo admin_url('admin-ajax.php'); ?>";
                     jQuery('form').submit(function (event) {
                         event.preventDefault();
-                        var nameProve   = jQuery(this).find("input[type='text']").val();
-                        var emailProve  = jQuery(this).find("input[type='email']").val();
-                        var numberProve = jQuery(this).find("input[type='number']").val();
+                        var nameProve        = jQuery(this).find("input[type='text']").val();
+                        var emailProve       = jQuery(this).find("input[type='email']").val();
+                        var numberPrefix     = jQuery( ".iti__selected-dial-code" ).text();
+                        var numberProve      = jQuery(this).find("input[type='tel']").val();
+                        var fullNumber       = '';
+                        var numberWithPrefix = fullNumber.concat(numberPrefix, numberProve);
+                       
                         // If all fileds fill than ajax work
                         if (nameProve !== '' && emailProve !== '' && numberProve !== '') {
                              // calling ajax
+                             alert(nameProve + '-' + emailProve + '-' + numberWithPrefix);
                             alert('all done!');
                             jQuery.ajax({
                                 type: 'POST',
@@ -92,13 +98,13 @@ class ProveSource
                                     'action' : 'instertInDb',
                                     'name': nameProve,
                                     'email': emailProve,
-                                    'number': numberProve,  
+                                    'number': numberWithPrefix,  
                                 },
                                 success: function(data){
                                   
-                                        var jsonn = jQuery.parseJSON(data); // create an object with the key of the array
-                                        alert(jsonn.html);
-                                        console.log(data.message);    // success message
+                                        // var jsonn = jQuery.parseJSON(data); // create an object with the key of the array
+                                        // alert(jsonn.html);
+                                        // console.log(data.message);    // success message
                                    
                                 }
                             });
@@ -114,7 +120,7 @@ class ProveSource
     }
 
 
-    public function instertInDb() {
+    function instertInDb() {
 
         global $wpdb;
     
@@ -137,12 +143,11 @@ class ProveSource
                 'number'    => $numberProve,
             )
         );
-        echo 'Success!';
     
-        // if row inserted in table
+        // if row inserted in table 
         if($insert_row){
             echo json_encode(array('res'=>true, 'message'=>__('New row has been inserted.')));
-        }else{
+        } else{
             echo json_encode(array('res'=>false, 'message'=>__('Something went wrong. Please try again later.')));
         }
     
@@ -158,14 +163,15 @@ class ProveSource
     function enqueue() {
         // enqueue all our scripts
         wp_enqueue_style( 'prove_source_style', plugins_url( '/assets/css/prove-style.css', __FILE__ ) );
-        wp_enqueue_script( 'prove_source_script', plugins_url( '/assets/js/prove-script.js', __FILE__ ) );
+        // Set Script to the FOOTER  *** array(), false, true ***
+        wp_enqueue_script( 'prove_source_script', plugins_url( '/assets/js/prove-script.js', __FILE__ ), array(), false, true );
         // Register AJAX and Jquery
-        wp_deregister_script('jquery');  
-        // Load a copy of jQuery from the Google API CDN  
-        // The last parameter set to TRUE states that it should be loaded  
-        // in the footer.  
-        wp_register_script('jquery', 'http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js', FALSE, '1.11.0', TRUE);  
-        wp_enqueue_script('jquery'); 
+        // wp_deregister_script('jquery');  
+        // // Load a copy of jQuery from the Google API CDN  
+        // // The last parameter set to TRUE states that it should be loaded  
+        // // in the footer.  
+        // wp_register_script('jquery', 'http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js', FALSE, '1.11.0', TRUE);  
+        // wp_enqueue_script('jquery'); 
 
     }
 
