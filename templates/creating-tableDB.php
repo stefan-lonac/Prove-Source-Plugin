@@ -14,7 +14,7 @@ function create_plugin_database_table() {
         $sql .= "  `id`  int(11)   NOT NULL auto_increment, ";
         $sql .= "  `name`  varchar(250)   NOT NULL, ";
         $sql .= "  `email`  varchar(250)   NOT NULL, ";
-        $sql .= "  `number`  int(250)   NOT NULL, ";
+        $sql .= "  `number`  varchar(250)   NOT NULL, ";
         $sql .= "  PRIMARY KEY `order_id` (`id`) "; 
         $sql .= ") ENGINE=MyISAM DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ; ";
         require_once( ABSPATH . '/wp-admin/includes/upgrade.php' );

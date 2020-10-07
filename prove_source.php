@@ -1,7 +1,7 @@
 <?php
 /**
 * @package ProveSource
-* Plugin Name: Prove Source
+* Plugin Name: Elementor Prove Source
 * Description: Handle the basics with this plugin.
 * Version: 1.0.0
 * Requires at least: 5.2
@@ -24,15 +24,22 @@ class ProveSource
     function __construct() {
         $this->plugin = plugin_basename( __FILE__ );
 
+        // Insert data to the database AJAX
         add_action( 'wp_footer', array($this,'ajaxInsertDB'));
         add_action( 'wp_ajax_instertInDb', array($this, 'instertInDb'));
         add_action( 'wp_ajax_nopriv_instertInDb', array($this, 'instertInDb'));
+
+        // Show all information from database
+        add_action( 'wp_footer', array($this,'popupContent'));
+        add_action( 'wp_footer', array($this,'ajaxInformationPpup'));
+        add_action( 'wp_ajax_informationDB', array($this, 'informationDB'));
+        add_action( 'wp_ajax_nopriv_informationDB', array($this, 'informationDB'));
     }
 
     // Registration assets like => scripts, style, image...
     function registerAssets() {
         // Show script file of DASHBOARD
-        add_action( 'admin_enqueue_scripts', array( $this, 'enqueue' ) );
+        add_action( 'admin_enqueue_scripts', array( $this, 'enqueueAdmin' ) );
 
         // Show script on PAGES (frontend)
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue' ) );
@@ -68,7 +75,7 @@ class ProveSource
 
 
 
-    // ************* Inserto to DB *************
+    // ************* Insert to DB *************
     function ajaxInsertDB() {
         ?>
             <script>
@@ -130,10 +137,6 @@ class ProveSource
         $nameProve      = $_POST['name'];
         $emailProve     = $_POST['email'];
         $numberProve    = $_POST['number'];
-        // // Check connection
-        // if($connection === false){
-        //     die("ERROR: Could not connect. " . mysqli_connect_error());
-        // }
         
         $insert_row = $wpdb->insert( 
             $wp_track_table, 
@@ -159,20 +162,128 @@ class ProveSource
 
 
 
-    // Call style or script file
-    function enqueue() {
-        // enqueue all our scripts
-        wp_enqueue_style( 'prove_source_style', plugins_url( '/assets/css/prove-style.css', __FILE__ ) );
-        // Set Script to the FOOTER  *** array(), false, true ***
-        wp_enqueue_script( 'prove_source_script', plugins_url( '/assets/js/prove-script.js', __FILE__ ), array(), false, true );
-        // Register AJAX and Jquery
-        // wp_deregister_script('jquery');  
-        // // Load a copy of jQuery from the Google API CDN  
-        // // The last parameter set to TRUE states that it should be loaded  
-        // // in the footer.  
-        // wp_register_script('jquery', 'http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js', FALSE, '1.11.0', TRUE);  
-        // wp_enqueue_script('jquery'); 
 
+    // ************* Show data from Database *************
+    // Show in information in admin panel on table
+    function informationDB() {
+        // Show all information form database table
+        global $wpdb;
+        $table_name = $wpdb->prefix . "prove_source";
+        $retrieve_data = $wpdb->get_results( "SELECT * FROM $table_name" );
+
+        echo json_encode($retrieve_data);
+
+        // if row inserted in table 
+        if(!$retrieve_data){
+            echo json_encode(array('res'=>false, 'message'=>__('Something went wrong. Please try again later.')));
+        }
+
+        header('Content-Type: application/json');
+        die();
+        return true;
+    }
+
+
+    function ajaxInformationPpup() {
+        ?>
+            <script>
+            
+            jQuery(document).ready(function() {
+
+                var ajaxurl = "<?php echo admin_url('admin-ajax.php'); ?>";
+                jQuery.ajax({    //create an ajax request to display.php
+                    type: "POST",
+                    url: ajaxurl,             
+                    dataType: "JSON",   //expect html to be returned   
+                    data: { 
+                        'action' : 'informationDB', 
+                    },             
+                    success: function(response){  
+                        // Slice array to first 5 customers
+                        var arrayContent = response.slice(0,4);           
+
+                        jQuery.each(arrayContent, function(key, value){
+                            jQuery("#popup-hide").append('<div class="popup-content-ps">' + 
+                                                            '<h3>' + value.name + '</h3><br>' +
+                                                            '<p>' + 'Just received an E-BOOK!' + '</p>' + 
+                                                            '<span>' + value.email + '</span>' + 
+                                                        '</div');
+                            console.log(value);
+                        });
+
+                    }
+
+                });
+
+                function delayPopup() {
+
+                    // Hides a popup that shows all the elements.
+                    jQuery("#popup-hide").hide();
+
+                    // A variable that displays random elements in text format
+                    var text = jQuery('#popup-show').text();
+
+                    // Takes from the "p" element and converts it to text
+                    var words = jQuery("#popup-hide .popup-content-ps").map(function() {
+                        return jQuery(this).html()
+                    }).get();
+
+                    // Function that displays popup after 3.5s (3500)
+                    setInterval(function() {
+                        // Toggle a "open" class
+                        jQuery('#popup-show').toggleClass('open');
+
+                        // Mix random names if there is an "open" class
+                        if ( jQuery('#popup-show').hasClass('open') ) {
+                            var randomElements = '<div>' + text + ' ' + words[Math.floor(Math.random() * words.length)] + '</div>';
+                            jQuery('#popup-show').html(randomElements);
+                        }
+                    }, 3500)
+
+                }
+                
+                setTimeout(delayPopup, 1000);
+
+            });
+            
+            </script> 
+        <?php
+    }
+
+    function popupContent() {
+        ?>
+        <div id="popup-hide">
+
+        </div>
+
+        <div id="popup-show" class="open-test">
+            
+        </div>
+
+        <?php
+    }
+    // END: ************* Show data from Database *************
+
+
+
+    // Call style or script file
+    function enqueue() { 
+        wp_enqueue_style( 'prove_source_style', plugins_url( '/assets/css/prove-style.css', __FILE__ ) );
+        // Register AJAX and Jquery 
+        // in the footer.  
+        wp_deregister_script('jquery');
+        wp_enqueue_script('jquery', 'https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js', array(), null, true);
+
+    }
+
+    // Call style or script file ON ADMIN PANEL
+    function enqueueAdmin() {
+        // enqueue all our scripts
+        wp_deregister_script('jquery');
+        wp_enqueue_script('jquery', 'https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js', array(), null, true);
+
+        wp_enqueue_script( 'prove_source_script', plugins_url( '/assets/js/prove-script.js', __FILE__ ) );
+        wp_enqueue_style( 'prove_source_style', plugins_url( '/assets/css/prove-style-admin.css', __FILE__ ) );
     }
 
 }

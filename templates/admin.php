@@ -16,21 +16,21 @@ $retrieve_data = $wpdb->get_results( "SELECT * FROM $table_name" );
 
 
 
-<input id="admin-search-table-pv" type="text" placeholder="Search Table..">
+<input id="admin-search-table-pv" type="search" placeholder="Search a table...">
 
  <table id="table-admin-ps">
-
     <thead>
+        
         <tr>
-            <th id="name-ps">Name</th>
-            <th id="email-ps">Email</th> 
+            <th>Name</th>
+            <th>Email</th> 
             <th>Phone Number</th>
         </tr>
     </thead>
 
     <tbody>
     <?php foreach ($retrieve_data as $retrieved_data){ ?>
-
+        
         <tr>
             <td><?php echo $retrieved_data->name;?></td>
             <td><?php echo $retrieved_data->email;?></td>
