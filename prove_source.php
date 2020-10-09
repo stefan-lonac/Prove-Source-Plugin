@@ -34,6 +34,10 @@ class ProveSource
         add_action( 'wp_footer', array($this,'ajaxInformationPpup'));
         add_action( 'wp_ajax_informationDB', array($this, 'informationDB'));
         add_action( 'wp_ajax_nopriv_informationDB', array($this, 'informationDB'));
+
+        // Delete row from database
+        add_action( 'wp_ajax_deleteRow', array($this, 'deleteRow'));
+        add_action( 'wp_ajax_nopriv_deleteRow', array($this, 'deleteRow'));
     }
 
     // Registration assets like => scripts, style, image...
@@ -73,6 +77,28 @@ class ProveSource
         register_post_type( 'book', ['public' => true, 'label' => 'Books'] );
     }
 
+    // Delete row from Admin table on click
+    function deleteRow() {
+
+        global $wpdb;
+    
+        $tblname = 'prove_source';
+        $table_name = $wpdb->prefix . "$tblname";
+
+        $id = $_GET['delete_id'];
+        $delete_row = $wpdb->delete( $table_name, array( 'id' => $id ) );
+
+        if($delete_row) {
+            echo json_encode(array('res'=>true, 'message'=>__('Delete ROW!'), 'rows' => $delete_row ));
+        } else {
+            echo json_encode(array('res'=>false, 'message'=>__('Not Delete ROW!')));
+        }
+
+
+        die();
+        return true;
+
+    }
 
 
     // ************* Insert to DB *************
@@ -108,11 +134,7 @@ class ProveSource
                                     'number': numberWithPrefix,  
                                 },
                                 success: function(data){
-                                  
-                                        // var jsonn = jQuery.parseJSON(data); // create an object with the key of the array
-                                        // alert(jsonn.html);
-                                        // console.log(data.message);    // success message
-                                   
+                                    console.log('Insert: ' + data);
                                 }
                             });
                          // If not all fileds fill than ajax wont work
@@ -179,6 +201,8 @@ class ProveSource
         }
 
         header('Content-Type: application/json');
+
+    
         die();
         return true;
     }
@@ -200,15 +224,14 @@ class ProveSource
                     },             
                     success: function(response){  
                         // Slice array to first 5 customers
-                        var arrayContent = response.slice(0,4);           
+                        var arrayContent = response.slice(-5);           
 
                         jQuery.each(arrayContent, function(key, value){
                             jQuery("#popup-hide").append('<div class="popup-content-ps">' + 
-                                                            '<h3>' + value.name + '</h3><br>' +
+                                                            '<h3>' + value.name + '</h3>' +
                                                             '<p>' + 'Just received an E-BOOK!' + '</p>' + 
-                                                            '<span>' + value.email + '</span>' + 
+                                                            '<span>' + value.date_time + '</span>' + 
                                                         '</div');
-                            console.log(value);
                         });
 
                     }
@@ -235,7 +258,7 @@ class ProveSource
 
                         // Mix random names if there is an "open" class
                         if ( jQuery('#popup-show').hasClass('open') ) {
-                            var randomElements = '<div>' + text + ' ' + words[Math.floor(Math.random() * words.length)] + '</div>';
+                            var randomElements = text + ' ' + words[Math.floor(Math.random() * words.length)];
                             jQuery('#popup-show').html(randomElements);
                         }
                     }, 3500)
@@ -256,7 +279,7 @@ class ProveSource
 
         </div>
 
-        <div id="popup-show" class="open-test">
+        <div id="popup-show" class="popup-content-ps-show">
             
         </div>
 
@@ -278,12 +301,15 @@ class ProveSource
 
     // Call style or script file ON ADMIN PANEL
     function enqueueAdmin() {
-        // enqueue all our scripts
-        wp_deregister_script('jquery');
-        wp_enqueue_script('jquery', 'https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js', array(), null, true);
+
+        wp_enqueue_script('bootbox', 'https://cdnjs.cloudflare.com/ajax/libs/bootbox.js/5.4.1/bootbox.min.js', array(), null, false);
+        wp_enqueue_script('bootstrap', 'https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js', array(), null, false);
 
         wp_enqueue_script( 'prove_source_script', plugins_url( '/assets/js/prove-script.js', __FILE__ ) );
+
         wp_enqueue_style( 'prove_source_style', plugins_url( '/assets/css/prove-style-admin.css', __FILE__ ) );
+        wp_enqueue_style('bootstrapStyle', 'https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css', array(), null, false);
+
     }
 
 }
@@ -306,6 +332,8 @@ require_once plugin_dir_path( __FILE__ ) . 'templates/creating-tableDB.php';
 register_activation_hook( __FILE__, 'create_plugin_database_table' );
 
 
-// Call file with shortcode function
-require_once plugin_dir_path( __FILE__ ) . 'templates/shortcode.php';
-register_activation_hook( __FILE__, 'wpb_demo_shortcode' );
+// // Call file with shortcode function
+// require_once plugin_dir_path( __FILE__ ) . 'templates/shortcode.php';
+// register_activation_hook( __FILE__, 'wpb_demo_shortcode' );
+
+
