@@ -7,7 +7,6 @@
     padding:10px;
     border:1px solid #aaa;
     box-sizing:border-box;
-    height:10%;
     opacity:0;
     overflow:hidden;
     transition: bottom 1s, opacity 1s;

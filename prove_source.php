@@ -88,6 +88,7 @@ class ProveSource
         $id = $_GET['delete_id'];
         $delete_row = $wpdb->delete( $table_name, array( 'id' => $id ) );
 
+
         if($delete_row) {
             echo json_encode(array('res'=>true, 'message'=>__('Delete ROW!'), 'rows' => $delete_row ));
         } else {
@@ -100,6 +101,8 @@ class ProveSource
 
     }
 
+
+    
 
     // ************* Insert to DB *************
     function ajaxInsertDB() {
@@ -120,8 +123,8 @@ class ProveSource
                        
                         // If all fileds fill than ajax work
                         if (nameProve !== '' && emailProve !== '' && numberProve !== '') {
-                             // calling ajax
-                             alert(nameProve + '-' + emailProve + '-' + numberWithPrefix);
+                            // calling ajax
+                            alert(nameProve + '-' + emailProve + '-' + numberWithPrefix);
                             alert('all done!');
                             jQuery.ajax({
                                 type: 'POST',
@@ -191,6 +194,7 @@ class ProveSource
         // Show all information form database table
         global $wpdb;
         $table_name = $wpdb->prefix . "prove_source";
+        $rowPerPage = $_POST['rowPerPage']; // Rows display per page
         $retrieve_data = $wpdb->get_results( "SELECT * FROM $table_name" );
 
         echo json_encode($retrieve_data);
@@ -214,6 +218,44 @@ class ProveSource
             
             jQuery(document).ready(function() {
 
+                // ***** Functions before the user logs in *****
+                // Array with set time
+                var DURATION_IN_SECONDS = {
+                    epochs: ['year', 'month', 'day', 'hour', 'minute'],
+                    year: 31536000,
+                    month: 2592000,
+                    day: 86400,
+                    hour: 3600,
+                    minute: 60
+                };
+
+                // Returns the value in seconds and converts to the value that is currently set
+                function getDuration(seconds) {
+                    var epoch, interval;
+
+                    for (var i = 0; i < DURATION_IN_SECONDS.epochs.length; i++) {
+                        epoch = DURATION_IN_SECONDS.epochs[i];
+                        interval = Math.floor(seconds / DURATION_IN_SECONDS[epoch]);
+                        if (interval >= 1) {
+                            return {
+                                interval: interval,
+                                epoch: epoch
+                            };
+                        }
+                    }
+
+                };
+
+                // Takes a date value and displays the date in hours or minutes format
+                function timeSince(date) {
+                    var seconds = Math.floor((new Date() - new Date(date)) / 1000);
+                    var duration = getDuration(seconds);
+                    var suffix = (duration.interval > 1 || duration.interval === 0) ? 's' : '';
+                    return duration.interval + ' ' + duration.epoch + suffix;
+                };
+                // ***** END: Functions before the user logs in *****
+
+
                 var ajaxurl = "<?php echo admin_url('admin-ajax.php'); ?>";
                 jQuery.ajax({    //create an ajax request to display.php
                     type: "POST",
@@ -230,7 +272,7 @@ class ProveSource
                             jQuery("#popup-hide").append('<div class="popup-content-ps">' + 
                                                             '<h3>' + value.name + '</h3>' +
                                                             '<p>' + 'Just received an E-BOOK!' + '</p>' + 
-                                                            '<span>' + value.date_time + '</span>' + 
+                                                            '<p>' + (timeSince(value.date_time)) + ' ago' + '</p>' + // Call the display function before the user logs on to the form
                                                         '</div');
                         });
 
@@ -301,7 +343,6 @@ class ProveSource
 
     // Call style or script file ON ADMIN PANEL
     function enqueueAdmin() {
-
         wp_enqueue_script('bootbox', 'https://cdnjs.cloudflare.com/ajax/libs/bootbox.js/5.4.1/bootbox.min.js', array(), null, false);
         wp_enqueue_script('bootstrap', 'https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js', array(), null, false);
 
@@ -309,6 +350,9 @@ class ProveSource
 
         wp_enqueue_style( 'prove_source_style', plugins_url( '/assets/css/prove-style-admin.css', __FILE__ ) );
         wp_enqueue_style('bootstrapStyle', 'https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css', array(), null, false);
+
+        wp_enqueue_script('tableAdminDBmin', 'https://cdn.datatables.net/1.10.22/js/jquery.dataTables.min.js', array(), null, true);
+        wp_enqueue_style('tableAdminDBminStyle', 'https://cdn.datatables.net/1.10.22/css/jquery.dataTables.min.css', array(), null, false);
 
     }
 
