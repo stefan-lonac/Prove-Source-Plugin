@@ -1,91 +1,195 @@
 
-<div class="settings-pv">
+<?php 
 
+global $PSnumberOfUsers;
+global $PSreceivetext;
+
+    // check if the user have submitted the settings
+    // WordPress will add the "settings-updated" $_GET parameter to the url
+    if ( isset( $_GET['settings-updated'] ) ) {
+        // add settings saved message with the class of "updated"
+        add_settings_error( 'wporg_messages', 'wporg_message', __( 'Settings Saved', 'wporg' ), 'updated' );
+    }
+ 
+    // show error/update messages
+    settings_errors( 'wporg_messages' );
+?>
+
+
+
+
+<div class="settings-pv">
 
 
     <h1>Prove Source Plugin Settings</h1>
     <!-- <p>If you need a form just insert this code on your page: <h3>[form-ps]</h3></p> -->
 
-    <div class="sl__flex sl__sb setting-filters">
-        <input id="admin-search-table-pv" class="" type="search" placeholder="Search a table...">
+    <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <a class="nav-link active" id="pills-settings-tab" data-toggle="pill" href="#pills-settings" role="tab" aria-controls="pills-settings" aria-selected="true">Settings</a>
+        </li>
 
-        <button type="button" class="btn btn-primary"> Users <span class="badge badge-light users-count"></span> </button> 
-    </div>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link" id="pills-table-tab" data-toggle="pill" href="#pills-table" role="tab" aria-controls="pills-table" aria-selected="false">Table</a>
+        </li>
+    </ul>
 
-    <select id="rowPerPage">
-        <option value="5">Per page...</option>
-        <option value="10">10</option>
-        <option value="15">15</option>
-        <option value="20">20</option>
-        <option value="*">All</option>
-    </select>
-    
 
-    <table id="table-admin-ps" class="table table-striped table-bordered" cellspacing="0" cellpadding="1" border="1" width="300">
 
-        <thead class="thead-dark"> 
-            <tr>
-                <th>Name</th>
-                <th>Email</th> 
-                <th>Phone Number</th>
-                <th>Date/Time</th>
-                <th>Delete</th>
-            </tr>
-        </thead>
+    <div class="tab-content" id="pills-tabContent">
 
-        <tbody id="table-body-ps">
+        <div class="tab-pane fade show active" id="pills-settings" role="tabpanel" aria-labelledby="pills-settings-tab">
 
-        </tbody>
+            <div>
+                <h5>How to use:</h5><p>If you want to collect data from a form, use the <strong style="font-size: 16px;">"ps-form"</strong> class on the popup form.</p>
+                
+                <div class="wrap">
+                    <form method="post" action="options.php">
+                
+                        <?php 
+                            settings_fields( 'prove_source_settings' ); // settings group name
+                            do_settings_sections( 'provesource_plugin' ); // just a page slug
+                            submit_button();
+                        ?>
+                
+                    </form>
+                </div>
+            </div>
+            
+        </div>
 
-    </table> 
+
+        <div class="tab-pane fade" id="pills-table" role="tabpanel" aria-labelledby="pills-table-tab">
+
+            <div class="table-content">
+            
+                <div class="sl__flex sl__sb setting-filters">
+                    <input id="admin-search-table-pv" class="" type="search" placeholder="Search a table...">
+
+                    <button type="button" class="btn btn-primary"> Users <span class="badge badge-light users-count"></span> </button> 
+                </div>
+
+            
+
+                <table id="table-admin-ps" class="table table-striped table-bordered" cellspacing="0" cellpadding="1" border="1" width="300">
+
+                    <thead class="thead-dark"> 
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th> 
+                            <th>Country</th>
+                            <th>Phone Number</th>
+                            <th>Date/Time</th>
+                            <th>Delete</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="table-body-ps">
+
+                    </tbody>
+
+                </table> 
+
+            </div><!-- END: .table-content -->
+
+        </div><!-- END: #pills-table -->
+
+    </div><!-- END: .tab-content -->
+
 
 </div>
 
 
 
+
 <script type="text/javascript">
+
 
 jQuery(document).ready(function() {
     var ajaxurl = "<?php echo admin_url('admin-ajax.php'); ?>";
 
     // =========== Show table on admin setting page ===========
 
-    // ***** Functions before the user logs in *****
-    // Array with set time
-    var DURATION_IN_SECONDS = {
-        epochs: ['year', 'month', 'day', 'hour', 'minute'],
-        year: 31536000,
-        month: 2592000,
-        day: 86400,
-        hour: 3600,
-        minute: 60
-    };
+    // ***** Little plugin for sorting -> userd function "sortElements" *****
+    jQuery.fn.sortElements = (function(){
+        
+        var sort = [].sort;
+        
+        return function(comparator, getSortable) {
+            
+            getSortable = getSortable || function(){return this;};
+            
+            var placements = this.map(function(){
+                
+                var sortElement = getSortable.call(this),
+                    parentNode = sortElement.parentNode,
+                    
+                    // Since the element itself will change position, we have
+                    // to have some way of storing it's original position in
+                    // the DOM. The easiest way is to have a 'flag' node:
+                    nextSibling = parentNode.insertBefore(
+                        document.createTextNode(''),
+                        sortElement.nextSibling                        
+                    );
 
-    // Returns the value in seconds and converts to the value that is currently set
-    function getDuration(seconds) {
-        var epoch, interval;
-
-        for (var i = 0; i < DURATION_IN_SECONDS.epochs.length; i++) {
-            epoch = DURATION_IN_SECONDS.epochs[i];
-            interval = Math.floor(seconds / DURATION_IN_SECONDS[epoch]);
-            if (interval >= 1) {
-                return {
-                    interval: interval,
-                    epoch: epoch
+                return function() {
+                    
+                    if (parentNode === this) {
+                        throw new Error(
+                            "You can't sort elements if any one is a descendant of another."
+                        );
+                    }
+                    
+                    // Insert before flag:
+                    parentNode.insertBefore(this, nextSibling);
+                    // Remove flag:
+                    parentNode.removeChild(nextSibling);
+                    
                 };
-            }
-        }
 
-    };
+            });
+        
+            return sort.call(this, comparator).each(function(i){
+                placements[i].call(getSortable.call(this));
+            });
+            
+        };
+        
+    })(); // ***** END: Little plugin for sorting -> userd function "sortElements" *****
 
-    // Takes a date value and displays the date in hours or minutes format
-    function timeSince(date) {
-        var seconds = Math.floor((new Date() - new Date(date)) / 1000);
-        var duration = getDuration(seconds);
-        var suffix = (duration.interval > 1 || duration.interval === 0) ? 's' : '';
-        return duration.interval + ' ' + duration.epoch + suffix;
-    };
-    // ***** END: Functions before the user logs in *****
+
+    // ***** Sort TABLE on click *****
+    jQuery('#table-admin-ps tr th').wrapInner('<span class="sort-this-column"/>').each(function(){
+            
+            var th = jQuery(this),
+                thIndex = th.index(),
+                inverse = false;
+            
+            th.click(function(){
+                console.log(this);
+                // this.addClass( "myClass yourClass" );
+                
+                jQuery('#table-admin-ps').find('td').filter(function(){
+                    
+                    return jQuery(this).index() === thIndex;
+
+                }).sortElements(function(a, b){
+                    
+                    return jQuery.text([a]) > jQuery.text([b]) ?
+
+                        inverse ? -1 : 1
+                        : inverse ? 1 : -1;
+                    
+                }, function(){ 
+                    // parentNode is the element we want to move
+                    return this.parentNode; 
+                    
+                });
+                inverse = !inverse;
+                    
+        });
+            
+    });// ***** END: Sort TABLE on click *****
 
 
     jQuery.ajax({    //create an ajax request to display.php
@@ -102,6 +206,7 @@ jQuery(document).ready(function() {
                 jQuery("#table-body-ps").append(    '<tr>' +
                                                         '<td>' + response[i].name + '</td>' +
                                                         '<td>' + response[i].email + '</td>' +
+                                                        '<td>' + response[i].country + '</td>' +
                                                         '<td>' + response[i].number + '</td>' +
                                                         '<td>' + response[i].date_time + '</td>' +
                                                         '<td>' + '<button type="button" class="delete-row-ps btn btn btn-danger" data-id="'+ response[i].id +'">Delete</button>'+ '</td>' +
@@ -111,7 +216,7 @@ jQuery(document).ready(function() {
             }
 
             var lengthRows = jQuery("#table-body-ps").find("tr").length;
-            jQuery(".users-count").append(lengthRows);
+            jQuery(".users-count").html(lengthRows);
 
             // =========== Delete row on click from table - admin setting page ===========
             jQuery(document).on("click", ".delete-row-ps", function() {
@@ -130,6 +235,8 @@ jQuery(document).ready(function() {
                         success: function(response) {
                             // Removing row from HTML Table
                             deleteEle.fadeOut().remove();
+                            minusUser = lengthRows - 1;
+                            jQuery(".users-count").html(minusUser);
                         },
                         error: function(response) {
                             console.log(response);

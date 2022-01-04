@@ -1,27 +1,35 @@
 <?php
 /**
-* @package ProveSource
-* Plugin Name: Elementor Prove Source
-* Description: Handle the basics with this plugin.
+* @package InfoProveSource
+* Plugin Name: Info Prove Source
+* Description: Plugin to display users who are logged in to the form popup, as well as display a popup window on the fronted.
 * Version: 1.0.0
 * Requires at least: 5.2
 * Requires PHP: 7.2
 * Author: Stefan Loncaric
 * License URI: https://www.gnu.org/licenses/gpl-2.0.html
-* Text Domain: my-basics-plugin -->
+* Text Domain: Info Prove Source
 * Domain Path: /languages
 */
 
 !defined('BASEPATH') or die('You cant Access!');
+
+$PSnumberOfUsers = get_option( 'number-of-users' );
+$PSreceivetext   = get_option( 'text-received' );
 
 class ProveSource 
 {
 
 
     // Create variable for absolute link of plugin
+
     public $plugin;
 
     function __construct() {
+        // Call fields file for admin page
+        require_once plugin_dir_path( __FILE__ ) . 'inc/field_admin_settings.php';
+        
+
         $this->plugin = plugin_basename( __FILE__ );
 
         // Insert data to the database AJAX
@@ -63,8 +71,9 @@ class ProveSource
 
     // Create Settings page and icon(dashicons-buddicons-buddypress-logo)
     public function add_admin_pages() {
-        add_menu_page( 'Prove Source Setting', 'Prove Source', 'manage_options', 'provesource_plugin', array( $this, 'admin_index'), 'dashicons-buddicons-buddypress-logo', 110 );
+        add_menu_page( 'Prove Source Setting', 'Info Prove Source', 'manage_options', 'provesource_plugin', array( $this, 'admin_index'), 'dashicons-buddicons-buddypress-logo', 110 );
     }
+
 
     // Call template for setting page
     public function admin_index() {
@@ -108,44 +117,59 @@ class ProveSource
     function ajaxInsertDB() {
         ?>
             <script>
+  
+                var elementorPopup = 'elementor/popup/show';
+                // jQuery( document ).on( elementorPopup, () => {// Start function when popup open
                 
-                jQuery(document).ready(function(){
-
                     var ajaxurl = "<?php echo admin_url('admin-ajax.php'); ?>";
-                    jQuery('form').submit(function (event) {
-                        event.preventDefault();
-                        var nameProve        = jQuery(this).find("input[type='text']").val();
-                        var emailProve       = jQuery(this).find("input[type='email']").val();
-                        var numberPrefix     = jQuery( ".iti__selected-dial-code" ).text();
-                        var numberProve      = jQuery(this).find("input[type='tel']").val();
-                        var fullNumber       = '';
-                        var numberWithPrefix = fullNumber.concat(numberPrefix, numberProve);
-                       
-                        // If all fileds fill than ajax work
-                        if (nameProve !== '' && emailProve !== '' && numberProve !== '') {
-                            // calling ajax
-                            alert(nameProve + '-' + emailProve + '-' + numberWithPrefix);
-                            alert('all done!');
-                            jQuery.ajax({
-                                type: 'POST',
-                                dataType: 'json',
-                                url: ajaxurl,
-                                data: { 
-                                    'action' : 'instertInDb',
-                                    'name': nameProve,
-                                    'email': emailProve,
-                                    'number': numberWithPrefix,  
-                                },
-                                success: function(data){
-                                    console.log('Insert: ' + data);
-                                }
-                            });
-                         // If not all fileds fill than ajax wont work
-                        } else {
-                            alert('please fill fields');
-                        }
+                    var formOnPage = jQuery('.ps-form');
+
+                    console.log(formOnPage.length);
+                    formOnPage.each(function(){
+
+                        var formThis = jQuery(this);
+
+                        formThis.submit(function (event) {
+                            event.preventDefault();
+
+                            var nameProve        = jQuery(this).find("input[type='text']").val();
+                            var emailProve       = jQuery(this).find("input[type='email']").val();
+                            var numberProve      = jQuery(this).find("input[type='tel']").val();
+                            var countyProve      = jQuery(this).find( ".iti__country-list .iti__active .iti__country-name").text();
+
+                            // Use this code under in commentar if you need phone with prefix -> for now we dont need this
+                            // var numberPrefix     = jQuery(this).find(".iti__selected-dial-code").text();
+                            // var fullNumber       = '';
+                            // var numberWithPrefix = fullNumber.concat(numberPrefix, numberProve);
+
+                            // If all fileds fill than ajax work
+                            if (nameProve !== '' && emailProve !== '' && numberProve !== '') {
+                                // calling ajax
+                                jQuery.ajax({
+                                    type: 'POST',
+                                    dataType: 'json',
+                                    url: ajaxurl,
+                                    data: { 
+                                        'action' : 'instertInDb',
+                                        'name': nameProve,
+                                        'email': emailProve,
+                                        'number': numberProve,  
+                                        'country': countyProve,
+                                    },
+                                    success: function(data){
+                                        formThis.append('<p style="color: green;">You subscribe now!</p>');
+                                    }
+                                });
+                            // If not all fileds fill than ajax wont work
+                            } else {
+                                alert('please fill fields');
+                            }
+
+                        });
+                    
                     });
-                });
+                
+            
             </script>
 
         <?php
@@ -162,6 +186,7 @@ class ProveSource
         $nameProve      = $_POST['name'];
         $emailProve     = $_POST['email'];
         $numberProve    = $_POST['number'];
+        $countryProve   = $_POST['country'];
         
         $insert_row = $wpdb->insert( 
             $wp_track_table, 
@@ -169,6 +194,7 @@ class ProveSource
                 'name'      => $nameProve,
                 'email'     => $emailProve,
                 'number'    => $numberProve,
+                'country'   => $countryProve
             )
         );
     
@@ -206,78 +232,56 @@ class ProveSource
 
         header('Content-Type: application/json');
 
-    
         die();
         return true;
     }
 
 
     function ajaxInformationPpup() {
+        global $PSnumberOfUsers;
+        global $PSreceivetext;
+
+        // set default timezone
+        $curenttime = current_time( 'Y-m-d H:i:s' );
         ?>
             <script>
             
             jQuery(document).ready(function() {
-
-                // ***** Functions before the user logs in *****
-                // Array with set time
-                var DURATION_IN_SECONDS = {
-                    epochs: ['year', 'month', 'day', 'hour', 'minute'],
-                    year: 31536000,
-                    month: 2592000,
-                    day: 86400,
-                    hour: 3600,
-                    minute: 60
-                };
-
-                // Returns the value in seconds and converts to the value that is currently set
-                function getDuration(seconds) {
-                    var epoch, interval;
-
-                    for (var i = 0; i < DURATION_IN_SECONDS.epochs.length; i++) {
-                        epoch = DURATION_IN_SECONDS.epochs[i];
-                        interval = Math.floor(seconds / DURATION_IN_SECONDS[epoch]);
-                        if (interval >= 1) {
-                            return {
-                                interval: interval,
-                                epoch: epoch
-                            };
-                        }
-                    }
-
-                };
-
-                // Takes a date value and displays the date in hours or minutes format
+                
+                // A function that takes server time (=== $curenttime ===) and displays the time before the user filled out the formula
                 function timeSince(date) {
-                    var seconds = Math.floor((new Date() - new Date(date)) / 1000);
-                    var duration = getDuration(seconds);
-                    var suffix = (duration.interval > 1 || duration.interval === 0) ? 's' : '';
-                    return duration.interval + ' ' + duration.epoch + suffix;
-                };
-                // ***** END: Functions before the user logs in *****
+                    var dateServer = "<?php echo $curenttime; ?>"; 
+                    var aDayNow = new Date(Date.now());
+                    var seconds = Math.floor((aDayNow - new Date(date)) / 1000);
+                    var interval = seconds / 31536000;
 
-
-                var ajaxurl = "<?php echo admin_url('admin-ajax.php'); ?>";
-                jQuery.ajax({    //create an ajax request to display.php
-                    type: "POST",
-                    url: ajaxurl,             
-                    dataType: "JSON",   //expect html to be returned   
-                    data: { 
-                        'action' : 'informationDB', 
-                    },             
-                    success: function(response){  
-                        // Slice array to first 5 customers
-                        var arrayContent = response.slice(-5);           
-
-                        jQuery.each(arrayContent, function(key, value){
-                            jQuery("#popup-hide").append('<div class="popup-content-ps">' + 
-                                                            '<h3>' + value.name + '</h3>' +
-                                                            '<p>' + 'Just received an E-BOOK!' + '</p>' + 
-                                                            '<p>' + (timeSince(value.date_time)) + ' ago' + '</p>' + // Call the display function before the user logs on to the form
-                                                        '</div');
-                        });
-
+                    if (interval > 1) {
+                        return Math.floor(interval) + " <?php _e( 'years', 'prove-source' ); ?>";
                     }
+                    interval = seconds / 2592000;
+                    if (interval > 1) {
+                        return Math.floor(interval) + " <?php _e( 'months', 'prove-source' ); ?>";
+                    }
+                    interval = seconds / 86400;
+                    if (interval > 1) {
+                        return Math.floor(interval) + " <?php _e( 'days', 'prove-source' ); ?>";
+                    }
+                    interval = seconds / 3600;
+                    if (interval > 1) {
+                        return Math.floor(interval) + " <?php _e( 'hours', 'prove-source' ); ?>";
+                    }
+                    interval = seconds / 60;
+                    if (interval > 1) {
+                        return Math.floor(interval) + " <?php _e( 'minutes', 'prove-source' ); ?>";
+                    }
+                    return Math.floor(seconds) + " <?php _e( 'seconds', 'prove-source' ); ?>";
+                }
 
+                // Add date to each user
+                jQuery( ".ps-datetime span" ).each(function(){
+                    var $tr = jQuery(this);
+                    var dateArrt = $tr.data( "date" )
+                    $tr.append(timeSince(dateArrt));
                 });
 
                 function delayPopup() {
@@ -292,18 +296,30 @@ class ProveSource
                     var words = jQuery("#popup-hide .popup-content-ps").map(function() {
                         return jQuery(this).html()
                     }).get();
+                    
+                    // Open from last update names if there is an "open" class
+                    //Function that displays popup after 3.5s (2500)    
+                    function displayWords(arr){
+                        var numberOfi = <?php echo $PSnumberOfUsers; ?> - 1;
+                        var i = numberOfi;
 
-                    // Function that displays popup after 3.5s (3500)
-                    setInterval(function() {
-                        // Toggle a "open" class
-                        jQuery('#popup-show').toggleClass('open');
+                        setInterval( function() {
+                            jQuery('#popup-show').toggleClass('open');
 
-                        // Mix random names if there is an "open" class
-                        if ( jQuery('#popup-show').hasClass('open') ) {
-                            var randomElements = text + ' ' + words[Math.floor(Math.random() * words.length)];
-                            jQuery('#popup-show').html(randomElements);
-                        }
-                    }, 3500)
+                            if (jQuery('#popup-show').hasClass('open')) {
+                                jQuery('#popup-show').html(arr[i]);      
+                                    // From bottom array to top
+                                if (i == 0) {
+                                    i = numberOfi;
+                                } else {
+                                    i--;
+                                }
+                            }
+                                
+                        },2300);
+
+                    }
+                    displayWords(words);
 
                 }
                 
@@ -316,15 +332,37 @@ class ProveSource
     }
 
     function popupContent() {
+        global $PSreceivetext;
+        global $PSnumberOfUsers;
+        global $wpdb;
+        $table_name = $wpdb->prefix . "prove_source";
+        
+        $retrieve_data = $wpdb->get_results( "SELECT * FROM $table_name ORDER BY date_time DESC LIMIT $PSnumberOfUsers" ); 
         ?>
+        
         <div id="popup-hide">
-
-        </div>
-
-        <div id="popup-show" class="popup-content-ps-show">
             
+            <?php foreach($retrieve_data as $data) { ?>
+
+                <div class="popup-content-ps">
+                    <h3>
+                        <?php echo $data->name; ?>
+                        <span class="ps-country"><?php echo $data->country; ?></span>
+                    </h3>
+
+                    <p class="ps-text-receive"><?php _e( $PSreceivetext, 'prove-source' ); ?></p>
+                    <p class="ps-datetime"> 
+                        <span data-date="<?php echo $data->date_time; ?>" class="ps-datetime-value"></span>
+                        <?php _e( 'ago', 'prove-source' ); ?> 
+                    </p>
+                </div>
+                    
+            <?php } ?>
+
         </div>
 
+
+        <div id="popup-show" class="popup-content-ps-show"></div>
         <?php
     }
     // END: ************* Show data from Database *************
@@ -337,7 +375,7 @@ class ProveSource
         // Register AJAX and Jquery 
         // in the footer.  
         wp_deregister_script('jquery');
-        wp_enqueue_script('jquery', 'https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js', array(), null, true);
+        wp_enqueue_script('jquery', 'https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js', array(), null, false);
 
     }
 
@@ -379,5 +417,4 @@ register_activation_hook( __FILE__, 'create_plugin_database_table' );
 // // Call file with shortcode function
 // require_once plugin_dir_path( __FILE__ ) . 'templates/shortcode.php';
 // register_activation_hook( __FILE__, 'wpb_demo_shortcode' );
-
 

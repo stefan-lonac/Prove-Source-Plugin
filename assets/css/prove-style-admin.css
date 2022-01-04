@@ -8,8 +8,30 @@
     margin-bottom: 15px;
 }
 
+.settings-pv .form-table tr {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-flex-direction: column;
+  -ms-flex-direction: column;
+  flex-direction: column;
+}
+
+.settings-pv .form-table th, .settings-pv .form-table td {
+  padding: 0;
+}
+
+/* ====== TABLE ====== */
 
 
+/* Sort */
+.sort-this-column {
+  cursor: pointer;
+}
+/* END: Sort */
+
+
+/* ====== END: TABLE ====== */
 
 
 /** GLOBAL GRID SIZES **/
